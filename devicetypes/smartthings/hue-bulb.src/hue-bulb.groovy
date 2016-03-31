@@ -105,7 +105,7 @@ void nextLevel() {
 	}
 	setLevel(level)
 }
-
+// TODO LARS kolla om on skall kallas xx
 void setLevel(percent) {
     log.debug "Executing 'setLevel'"
     if (verifyPercent(percent)) {
@@ -164,7 +164,9 @@ void setColor(value) {
         validValues.switch = "on"
     }
     if (!events.isEmpty()) {
-        parent.setColor(this, validValues)
+        log.error "lars validVaalues=$validValues"
+        def result = parent.setColor(this, validValues)
+        log.error "lars setColorResult=$result"
     }
     events.each {
         sendEvent(it)
