@@ -396,9 +396,11 @@ def addBridge() {
             }
         	if (newbridge) {
 				d = addChildDevice("smartthings", "Hue Bridge", selectedHue, vbridge.value.hub)
+				vbridge.value.lastActivity = now()
  				log.debug "created ${d.displayName} with id ${d.deviceNetworkId}"
                 def childDevice = getChildDevice(d.deviceNetworkId)
                 childDevice.sendEvent(name: "serialNumber", value: vbridge.value.serialNumber)
+				childDevice.sendEvent(name: "status", value: "Online")
  				if (vbridge.value.ip && vbridge.value.port) {
                 	if (vbridge.value.ip.contains(".")) {
                     	childDevice.sendEvent(name: "networkAddress", value: vbridge.value.ip + ":" +  vbridge.value.port)
@@ -439,6 +441,7 @@ def ssdpBridgeHandler(evt) {
 		def host = ip + ":" + port
 		log.debug "Device ($parsedEvent.mac) was already found in state with ip = $host."
 		def dstate = bridges."${parsedEvent.ssdpUSN.toString()}"
+		dstate.lastActivity = now()
 		def dni = "${parsedEvent.mac}"
 		def d = getChildDevice(dni)
 		def networkAddress = null
@@ -446,6 +449,7 @@ def ssdpBridgeHandler(evt) {
 			childDevices.each {
 				if (it.getDeviceDataByName("mac")) {
 					def newDNI = "${it.getDeviceDataByName("mac")}"
+					d = it
 					if (newDNI != it.deviceNetworkId) {
 						def oldDNI = it.deviceNetworkId
 						log.debug "updating dni for device ${it} with $newDNI - previous DNI = ${it.deviceNetworkId}"
@@ -473,6 +477,7 @@ def ssdpBridgeHandler(evt) {
 				d.updateDataValue("networkAddress", host)
 			}
 		}
+		d?.sendEvent(name: "status", value: "Online")
 	}
 }
 
@@ -547,6 +552,7 @@ def locationHandler(evt) {
             def host = ip + ":" + port
 			log.debug "Device ($parsedEvent.mac) was already found in state with ip = $host."
             def dstate = bridges."${parsedEvent.ssdpUSN.toString()}"
+            dstate.lastActivity = now()
 			def dni = "${parsedEvent.mac}"
             def d = getChildDevice(dni)
             def networkAddress = null
@@ -554,6 +560,7 @@ def locationHandler(evt) {
             	childDevices.each {
                     if (it.getDeviceDataByName("mac")) {
                         def newDNI = "${it.getDeviceDataByName("mac")}"
+						d = it
                         if (newDNI != it.deviceNetworkId) {
                             def oldDNI = it.deviceNetworkId
                             log.debug "updating dni for device ${it} with $newDNI - previous DNI = ${it.deviceNetworkId}"
@@ -581,6 +588,7 @@ def locationHandler(evt) {
                     d.updateDataValue("networkAddress", host)
             	}
             }
+			d?.sendEvent(name: "status", value: "Online")
 		}
 	}
 	else if (parsedEvent.headers && parsedEvent.body) {
@@ -632,6 +640,22 @@ def doDeviceSync(){
 	poll()
 	ssdpSubscribe()
 	discoverBridges()
+    checkBridgeStatus()
+}
+
+private checkBridgeStatus() {
+    def bridges = getHueBridges()
+    // Check if each bridge has been heard from within the last 6 minutes
+    def time = now() - (1000 * 60 * 6)
+    bridges.each {
+        def d = getChildDevice(selectedHue)
+        if (it.value.lastActivity < time) { // it.value.lastActivity != null &&
+            log.warn "Bridge $it.key is Offline"
+            d?.sendEvent(name: "status", value: "Offline")//setOnline(false)
+        } else {
+			d?.sendEvent(name: "status", value: "Online")//setOnline(false)
+        }
+    }
 }
 
 def isValidSource(macAddress) {

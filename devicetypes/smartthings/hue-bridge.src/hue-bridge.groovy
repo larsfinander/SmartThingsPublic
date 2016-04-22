@@ -9,6 +9,9 @@ metadata {
 	definition (name: "Hue Bridge", namespace: "smartthings", author: "SmartThings") {
 		attribute "serialNumber", "string"
 		attribute "networkAddress", "string"
+        // Used to indicate if bridge is reachable or not, i.e. is the bridge connected to the network
+        // Possible values "Online" or "Offline"
+		attribute "status", "string"
 	}
 
 	simulator {
@@ -17,22 +20,20 @@ metadata {
 
 	tiles(scale: 2) {
      	multiAttributeTile(name:"rich-control"){
-			tileAttribute ("", key: "PRIMARY_CONTROL") {
-	            attributeState "default", label: "Hue Bridge", action: "", icon: "st.Lighting.light99-hue", backgroundColor: "#F3C200"
+			tileAttribute ("device.status", key: "PRIMARY_CONTROL") {
+				attributeState "Offline", label: '${currentValue}', action: "", icon: "st.Lighting.light99-hue", backgroundColor: "#ffffff"
+	            attributeState "Online", label: '${currentValue}', action: "", icon: "st.Lighting.light99-hue", backgroundColor: "#79b821"
 			}
-	        tileAttribute ("serialNumber", key: "SECONDARY_CONTROL") {
-	            attributeState "default", label:'SN: ${currentValue}'
 			}
-        }
-		valueTile("serialNumber", "device.serialNumber", decoration: "flat", height: 1, width: 2, inactiveLabel: false) {
+		valueTile("serialNumber", "device.serialNumber", decoration: "flat", height: 2, width: 6, inactiveLabel: false) {
 			state "default", label:'SN: ${currentValue}'
 		}
-		valueTile("networkAddress", "device.networkAddress", decoration: "flat", height: 2, width: 4, inactiveLabel: false) {
-			state "default", label:'${currentValue}', height: 1, width: 2, inactiveLabel: false
+		valueTile("networkAddress", "device.networkAddress", decoration: "flat", height: 2, width: 6, inactiveLabel: false) {
+			state "default", label:'IP: ${currentValue}', height: 1, width: 2, inactiveLabel: false
 		}
 
 		main (["rich-control"])
-		details(["rich-control", "networkAddress"])
+		details(["rich-control", "serialNumber", "networkAddress"])
 	}
 }
 
